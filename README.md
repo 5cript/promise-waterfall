@@ -5,8 +5,8 @@ Especially useful for I/O where
 
 A useful tool called waterfall allows to write sequentially looking, but actually asynchronous code.
 
-#Examples
-##Example 0
+# Examples
+## Example 0
 ```C++
 #define PROMISE_WATERFALL_NO_BOOST
 #include "promise.hpp"
@@ -33,7 +33,7 @@ int main()
 }
 ```
 
-##Example 1
+## Example 1
 ```C++
 #include "waterfall.hpp"
 
@@ -81,7 +81,7 @@ after all
 
 
 
-##Example 2
+## Example 2
 ```C++
 #include "waterfall.hpp"
 
@@ -127,7 +127,7 @@ bar
 lambda
 ```
 
-##Example 3
+## Example 3
 ```C++
 #include "waterfall.hpp"
 
