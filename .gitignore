@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+*_build_log.html
+*.layout
+*.depend
+*.cbp
+main.cpp
