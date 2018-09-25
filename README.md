@@ -17,10 +17,10 @@ int main()
 {
     using namespace PromiseWaterfall;
 
-	Promise p;
-	p.then([](){
-		std::cout << "bla\n";
-	}).except([](auto ec){
+    Promise p;
+    p.then([](){
+        std::cout << "bla\n";
+    }).except([](auto ec){
         std::cout << "oh no!\n";
         std::cout << ec << "\n";
     });
