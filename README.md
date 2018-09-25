@@ -106,8 +106,8 @@ int main()
 {
     waterfall_interject <void>
     (
-		// first function is called in between each of the promises.
-		// useful for adding pauses or repeated intermediary work.
+        // first function is called in between each of the promises.
+        // useful for adding pauses or repeated intermediary work.
         [](auto& ctx) {std::cout << "---> " << ctx.count << " <---\n"; },
         foo,
         bar,
@@ -137,7 +137,7 @@ int main()
 {
     waterfall_interject <bool>
     (
-		// return true to continue, false to break chain without error.
+        // return true to continue, false to break chain without error.
         [](auto& ctx) {std::cout << "---> " << ctx.count << " <---\n"; return true;},
         foo,
         bar
