@@ -69,13 +69,15 @@ namespace PromiseWaterfall
         template <typename ReturnT, typename T, typename... List>
         void waterfall_interject_impl(interjection_context <ReturnT> interjectionContext, T&& front, List&&... list)
         {
-            front().then(
+            front().then
+            (
                 [
                     nextParameters = std::make_tuple(
                         interjectionContext,
                         std::forward <List>(list)...
                     )
-                ](){
+                ]()
+                {
                     auto interjectionContext = std::get <0>(nextParameters);
 
                     if constexpr (sizeof...(List) >= 1)
@@ -90,7 +92,37 @@ namespace PromiseWaterfall
                         interjectionContext.count++;
                         detail::apply_non_deduce(&waterfall_interject_impl <ReturnT, std::decay_t <List> const&...>, nextParameters);
                     }
-            });
+                }
+            );
+        }
+
+        template <typename ReturnT, typename IteratorT>
+        inline void waterfall_interject_iter_impl(
+            interjection_context <ReturnT> interjectionContext,
+            IteratorT begin,
+            IteratorT end
+        )
+        {
+            if (begin == end)
+                return;
+            (*begin)().then
+            (
+                [begin, end, &interjectionContext]()
+                {
+                    if (begin + 1 != end)
+                    {
+                        if constexpr (std::is_same <ReturnT, bool>::value)
+                        {
+                            if (!interjectionContext.interjection(interjectionContext))
+                                return;
+                        }
+                        else
+                            interjectionContext.interjection(interjectionContext);
+                        interjectionContext.count++;
+                        waterfall_interject_iter_impl(interjectionContext, begin + 1, end);
+                    }
+                }
+            );
         }
     }
 
@@ -109,6 +141,19 @@ namespace PromiseWaterfall
         interjection_context <ReturnT> ctx{};
         ctx.interjection = interjection;
         detail::waterfall_interject_impl(std::move(ctx), std::forward <T>(front), std::forward <List>(list)...);
+    }
+
+    template <typename ReturnT, typename IteratorT>
+    inline void waterfall_interject(
+        IteratorT begin,
+        IteratorT end,
+        std::function <ReturnT(interjection_context<ReturnT>&)> const& interjection
+    )
+    {
+        interjection_context <ReturnT> ctx{};
+        ctx.interjection = interjection;
+
+        detail::waterfall_interject_iter_impl(ctx, begin, end);
     }
 
     template <typename T, typename... List>
