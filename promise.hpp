@@ -20,33 +20,6 @@ namespace PromiseWaterfall
     using promise_error_code = boost::system::error_code;
 #endif // PROMISE_WATERFALL_NO_BOOST
 
-    namespace detail
-    {
-        template <typename F, typename Tuple, std::size_t ... I>
-        constexpr decltype(auto) apply_impl(F&& f, Tuple&& t, std::index_sequence<I...>){
-            return static_cast <F&&>(f)(std::get <I>(static_cast <Tuple&&>(t))...);
-        }
-
-        template <class F, class Tuple>
-        constexpr decltype(auto) apply(F&& f, Tuple&& t)
-        {
-            return apply_impl(std::forward<F>(f), std::forward<Tuple>(t),
-                std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
-        }
-
-        template <typename F, typename Tuple, std::size_t ... I>
-        constexpr decltype(auto) apply_non_deduce_impl(F const& f, Tuple const& t, std::index_sequence<I...>){
-             return f(std::get <I>(t)...);
-        }
-
-        template <class F, class Tuple>
-        constexpr decltype(auto) apply_non_deduce(F const& f, Tuple const& t)
-        {
-            return apply_non_deduce_impl(f, t,
-                std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
-        }
-    }
-
     /**
      *  This class represents a promise encapsulating
      *  a success callback and a fail callback.
@@ -209,6 +182,8 @@ namespace PromiseWaterfall
         {
             func_ = {};
             error_ = {};
+            error_.store(false);
+            fullfilled_.store(false);
             return *this;
         }
 

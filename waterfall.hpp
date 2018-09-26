@@ -4,6 +4,33 @@
 
 namespace PromiseWaterfall
 {
+    namespace detail
+    {
+        template <typename F, typename Tuple, std::size_t ... I>
+        constexpr decltype(auto) apply_impl(F&& f, Tuple&& t, std::index_sequence<I...>){
+            return static_cast <F&&>(f)(std::get <I>(static_cast <Tuple&&>(t))...);
+        }
+
+        template <class F, class Tuple>
+        constexpr decltype(auto) apply(F&& f, Tuple&& t)
+        {
+            return apply_impl(std::forward<F>(f), std::forward<Tuple>(t),
+                std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
+        }
+
+        template <typename F, typename Tuple, std::size_t ... I>
+        constexpr decltype(auto) apply_non_deduce_impl(F const& f, Tuple const& t, std::index_sequence<I...>){
+             return f(std::get <I>(t)...);
+        }
+
+        template <class F, class Tuple>
+        constexpr decltype(auto) apply_non_deduce(F const& f, Tuple const& t)
+        {
+            return apply_non_deduce_impl(f, t,
+                std::make_index_sequence<std::tuple_size<std::decay_t<Tuple>>::value>{});
+        }
+    }
+
     template <typename T, typename... List>
     inline void waterfall(T&& front, List&&... list);
 
@@ -23,12 +50,6 @@ namespace PromiseWaterfall
         int count;
 
         /**
-         *  The previous promise that was handled. Can never be nullptr, since the interjection is not called before any
-         *  promise was executed.
-         */
-        callback_wrapper* previous;
-
-        /**
          *  The interjection function that is used.
          *  Provided so it can be changed on the fly.
          */
@@ -46,30 +67,27 @@ namespace PromiseWaterfall
     namespace detail
     {
         template <typename ReturnT, typename T, typename... List>
-        void waterfall_interject_impl(interjection_context <ReturnT>* interjectionContext, T&& front, List&&... list)
+        void waterfall_interject_impl(interjection_context <ReturnT> interjectionContext, T&& front, List&&... list)
         {
-            auto&& prev = front();
-            prev.then(
+            front().then(
                 [
-                    &prev,
                     nextParameters = std::make_tuple(
                         interjectionContext,
                         std::forward <List>(list)...
                     )
                 ](){
-                    auto* interjectionContext = std::get <0>(nextParameters);
-                    interjectionContext->previous = &prev;
+                    auto interjectionContext = std::get <0>(nextParameters);
 
                     if constexpr (sizeof...(List) >= 1)
                     {
                         if constexpr (std::is_same <ReturnT, bool>::value)
                         {
-                            if (!interjectionContext->interjection(*interjectionContext))
+                            if (!interjectionContext.interjection(interjectionContext))
                                 return;
                         }
                         else
-                            interjectionContext->interjection(*interjectionContext);
-                        interjectionContext->count++;
+                            interjectionContext.interjection(interjectionContext);
+                        interjectionContext.count++;
                         detail::apply_non_deduce(&waterfall_interject_impl <ReturnT, std::decay_t <List> const&...>, nextParameters);
                     }
             });
@@ -90,7 +108,7 @@ namespace PromiseWaterfall
     {
         interjection_context <ReturnT> ctx{};
         ctx.interjection = interjection;
-        detail::waterfall_interject_impl(&ctx, std::forward <T>(front), std::forward <List>(list)...);
+        detail::waterfall_interject_impl(std::move(ctx), std::forward <T>(front), std::forward <List>(list)...);
     }
 
     template <typename T, typename... List>
